@@ -5,9 +5,9 @@
  * An open source application development framework for PHP 5.2.4 or newer
  *
  * NOTICE OF LICENSE
- * 
+ *
  * Licensed under the Open Software License version 3.0
- * 
+ *
  * This source file is subject to the Open Software License (OSL 3.0) that is
  * bundled with this package in the files license.txt / license.rst.  It is
  * also available through the world wide web at this URL:
@@ -70,7 +70,6 @@ $lang['cal_september']	= "September";
 $lang['cal_october']	= "October";
 $lang['cal_november']	= "November";
 $lang['cal_december']	= "December";
-
 
 /* End of file calendar_lang.php */
 /* Location: ./system/language/english/calendar_lang.php */

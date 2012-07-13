@@ -5,9 +5,9 @@
  * An open source application development framework for PHP 5.2.4 or newer
  *
  * NOTICE OF LICENSE
- * 
+ *
  * Licensed under the Open Software License version 3.0
- * 
+ *
  * This source file is subject to the Open Software License (OSL 3.0) that is
  * bundled with this package in the files license.txt / license.rst.  It is
  * also available through the world wide web at this URL:
@@ -37,7 +37,6 @@ $lang['ftp_no_source_file']			= "Unable to locate the source file. Please check 
 $lang['ftp_unable_to_rename']		= "Unable to rename the file.";
 $lang['ftp_unable_to_delete']		= "Unable to delete the file.";
 $lang['ftp_unable_to_move']			= "Unable to move the file. Please make sure the destination directory exists.";
-
 
 /* End of file ftp_lang.php */
 /* Location: ./system/language/english/ftp_lang.php */

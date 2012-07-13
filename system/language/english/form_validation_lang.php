@@ -5,9 +5,9 @@
  * An open source application development framework for PHP 5.2.4 or newer
  *
  * NOTICE OF LICENSE
- * 
+ *
  * Licensed under the Open Software License version 3.0
- * 
+ *
  * This source file is subject to the Open Software License (OSL 3.0) that is
  * bundled with this package in the files license.txt / license.rst.  It is
  * also available through the world wide web at this URL:
@@ -50,7 +50,6 @@ $lang['less_than']				= "The %s field must contain a number less than %s.";
 $lang['less_than_equal_to']		= "The %s field must contain a number less than or equal to %s.";
 $lang['greater_than']			= "The %s field must contain a number greater than %s.";
 $lang['greater_than_equal_to']	= "The %s field must contain a number greater than or equal to %s.";
-
 
 /* End of file form_validation_lang.php */
 /* Location: ./system/language/english/form_validation_lang.php */

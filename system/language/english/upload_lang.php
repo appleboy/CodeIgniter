@@ -5,9 +5,9 @@
  * An open source application development framework for PHP 5.2.4 or newer
  *
  * NOTICE OF LICENSE
- * 
+ *
  * Licensed under the Open Software License version 3.0
- * 
+ *
  * This source file is subject to the Open Software License (OSL 3.0) that is
  * bundled with this package in the files license.txt / license.rst.  It is
  * also available through the world wide web at this URL:
@@ -41,7 +41,6 @@ $lang['upload_no_filepath'] = "The upload path does not appear to be valid.";
 $lang['upload_no_file_types'] = "You have not specified any allowed file types.";
 $lang['upload_bad_filename'] = "The file name you submitted already exists on the server.";
 $lang['upload_not_writable'] = "The upload destination folder does not appear to be writable.";
-
 
 /* End of file upload_lang.php */
 /* Location: ./system/language/english/upload_lang.php */
