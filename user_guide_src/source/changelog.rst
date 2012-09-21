@@ -34,6 +34,7 @@ Release Date: Not Released
    -  Added support for rar archives to mimes.php.
    -  Updated support for xml ('application/xml') and xsl ('application/xml', 'text/xsl') files in mimes.php.
    -  Updated support for doc files in mimes.php.
+   -  Updated support for docx files in mimes.php.
    -  Updated support for php files in mimes.php.
    -  Updated support for zip files in mimes.php.
    -  Updated support for csv files in mimes.php.
@@ -50,7 +51,8 @@ Release Date: Not Released
    -  Changed detection of ``$view_folder`` so that if it's not found in the current path, it will now also be searched for under the application folder.
    -  Path constants BASEPATH, APPPATH and VIEWPATH are now (internally) defined as absolute paths.
    -  Updated email validation methods to use ``filter_var()`` instead of PCRE.
-   -  Changed environment defaults to report all errors in 'development' and only fatal ones in 'testing' and 'production' but only display them in 'development'.
+   -  Changed environment defaults to report all errors in *development* and only fatal ones in *testing*, *production* but only display them in *development*.
+   -  Updated *ip_address* database field lengths from 16 to 45 for supporting IPv6 address on :doc:`Trackback Library <libraries/trackback>` and :doc:`Captcha Helper <helpers/captcha_helper>`.
 
 -  Helpers
 
@@ -65,6 +67,7 @@ Release Date: Not Released
 	 - ``anchor_popup()`` will now fill the "href" attribute with the URL and its JS code will return false instead.
 	 - Added JS window name support to ``anchor_popup()`` function.
 	 - Added support (auto-detection) for HTTP/1.1 response code 303 in ``redirect()``.
+	 - "auto" method in ``redirect()`` now chooses the "refresh" method only on IIS servers, instead of all servers on Windows.
    -  Added XHTML Basic 1.1 doctype to :doc:`HTML Helper <helpers/html_helper>`.
    -  Changed ``humanize()`` to include a second param for the separator.
    -  Refactored ``plural()`` and ``singular()`` to avoid double pluralization and support more words.
@@ -139,14 +142,28 @@ Release Date: Not Released
    -  Added PDO support for create_database(), drop_database and drop_table() in :doc:`Database Forge <database/forge>`.
    -  Added unbuffered_row() method for getting a row without prefetching whole result (consume less memory).
    -  Added PDO support for ``list_fields()`` in :doc:`Database Results <database/results>`.
-   -  Added capability for packages to hold database.php config files 
+   -  Added capability for packages to hold database.php config files
    -  Added subdrivers support (currently only used by PDO).
+   -  Added client compression support for MySQL and MySQLi.
+   -  Removed :doc:`Loader Class <libraries/loader>` from Database error to better find the likely culprit.
 
 -  Libraries
 
-   -  CI_Session now respects php.ini's session.gc_probability and session.gc_divisor
+   -  :doc:`Session Library <libraries/sessions>` changes include:
+	 -  Library changed to :doc:`Driver <general/drivers>` with classic Cookie driver as default.
+	 -  Added Native PHP Session driver to work with $_SESSION.
+	 -  Custom session drivers can be added anywhere in package paths and loaded with Session library.
+	 -  Session drivers interchangeable on the fly.
+	 -  New tempdata feature allows setting user data items with an expiration time.
+	 -  Added default $config['sess_driver'] and $config['sess_valid_drivers'] items to config.php file.
+	 -  Cookie driver now respects php.ini's session.gc_probability and session.gc_divisor
+	 -  Changed the Cookie driver to select only one row when using database sessions.
+	 -  Cookie driver now only writes to database at end of request when using database.
+	 -  Cookie driver now uses PHP functions for faster array manipulation when using database.
+	 -  Added all_flashdata() method to session class. Returns an associative array of only flashdata.
+	 -  Added has_userdata() method to verify existence of userdata item.
+	 -  Added tempdata(), set_tempdata(), and unset_tempdata() methods for manipulating tempdata.
    -  Added max_filename_increment config setting for Upload library.
-   -  CI_Loader::_ci_autoloader() is now a protected method.
    -  :doc:`Cart library <libraries/cart>` changes include:
 	 -  It now auto-increments quantity's instead of just resetting it, this is the default behaviour of large e-commerce sites.
 	 -  Product Name strictness can be disabled via the Cart Library by switching "$product_name_safe".
@@ -170,8 +187,6 @@ Release Date: Not Released
 	 -  Native PHP functions used as rules can now accept an additional parameter, other than the data itself.
 	 -  Updated set_rules() to accept an array of rules as well as a string.
 	 -  Fields that have empty rules set no longer run through validation (and therefore are not considered erroneous).
-   -  Changed the :doc:`Session Library <libraries/sessions>` to select only one row when using database sessions.
-   -  Added all_flashdata() method to session class. Returns an associative array of only flashdata.
    -  Allowed for setting table class defaults in a config file.
    -  Added a Wincache driver to the :doc:`Caching Library <libraries/caching>`.
    -  Added a Redis driver to the :doc:`Caching Library <libraries/caching>`.
@@ -187,13 +202,18 @@ Release Date: Not Released
 	 -  Added support for setting custom attributes.
 	 -  Deprecated usage of the "anchor_class" setting (use the new "attributes" setting instead).
 	 -  Added $config['reuse_query_string'] to allow automatic repopulation of query string arguments, combined with normal URI segments.
+   -  Removed the default ``&nbsp;`` from a number of the configuration variables.
    -  Added the ability to use a proxy with the :doc:`XML-RPC Library <libraries/xmlrpc>`.
 
 -  Core
 
    -  Changed private methods in the :doc:`URI Library <libraries/uri>` to protected so MY_URI can override them.
    -  Removed CI_CORE boolean constant from CodeIgniter.php (no longer Reactor and Core versions).
-   -  Added method get_vars() to the :doc:`Loader Library <libraries/loader>` to retrieve all variables loaded with $this->load->vars().
+   -  :doc:`Loader Library <libraries/loader>` changes include:
+	 -  Added method get_vars() to the Loader to retrieve all variables loaded with $this->load->vars().
+	 -  CI_Loader::_ci_autoloader() is now a protected method.
+	 -  Added autoloading of drivers with $autoload['drivers'].
+	 -  CI_Loader::library() will now load drivers as well, for backward compatibility of converted libraries (like Session).
    -  is_loaded() function from system/core/Commons.php now returns a reference.
    -  $config['rewrite_short_tags'] now has no effect when using PHP 5.4 as *<?=* will always be available.
    -  Added method() to the :doc:`Input Library <libraries/input>` to retrieve $_SERVER['REQUEST_METHOD'].
@@ -321,6 +341,8 @@ Bug fixes for 3.0
 -  Fixed a bug (#1613) - :doc:`Form Helper <helpers/form_helper>` functions ``form_multiselect()``, ``form_dropdown()`` didn't properly handle empty array option groups.
 -  Fixed a bug (#1605) - :doc:`Pagination Library <libraries/pagination>` produced incorrect *previous* and *next* link values.
 -  Fixed a bug in SQLSRV's ``affected_rows()`` method where an erroneous function name was used.
+-  Fixed a bug (#1000) - Change syntax of ``$view_file`` to ``$_ci_view_file`` to prevent being overwritten by application.
+-  Fixed a bug (#1757) - :doc:`Directory Helper <helpers/directory_helper>` function ``directory_map()`` was skipping files and directories named *0*.
 
 Version 2.1.2
 =============

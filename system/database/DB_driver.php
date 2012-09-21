@@ -51,6 +51,7 @@ abstract class CI_DB_driver {
 	public $char_set		= 'utf8';
 	public $dbcollat		= 'utf8_general_ci';
 	public $autoinit		= TRUE; // Whether to automatically initialize the DB
+	public $compress		= TRUE;
 	public $swap_pre		= '';
 	public $port			= '';
 	public $pconnect		= FALSE;
@@ -1352,7 +1353,7 @@ abstract class CI_DB_driver {
 		$trace = debug_backtrace();
 		foreach ($trace as $call)
 		{
-			if (isset($call['file']) && strpos($call['file'], BASEPATH.'database') === FALSE)
+			if (isset($call['file'], $call['class']) && strpos($call['file'], BASEPATH.'database') === FALSE && strpos($call['class'], 'Loader') !== FALSE)
 			{
 				// Found it - use a relative path for safety
 				$message[] = 'Filename: '.str_replace(array(APPPATH, BASEPATH), '', $call['file']);
