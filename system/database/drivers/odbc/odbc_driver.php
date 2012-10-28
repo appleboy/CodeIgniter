@@ -45,12 +45,23 @@ class CI_DB_odbc_driver extends CI_DB {
 	// the character used to excape - not necessary for ODBC
 	protected $_escape_char = '';
 
-	// clause and character used for LIKE escape sequences
 	protected $_like_escape_str = " {escape '%s'} ";
-	protected $_like_escape_chr = '!';
 
 	protected $_random_keyword;
 
+	/**
+	 * Database schema
+	 *
+	 * @var	string
+	 */
+	public $schema = 'public';
+
+	/**
+	 * Constructor
+	 *
+	 * @param	array	$params
+	 * @return	void
+	 */
 	public function __construct($params)
 	{
 		parent::__construct($params);
@@ -63,6 +74,8 @@ class CI_DB_odbc_driver extends CI_DB {
 			$this->dsn = $this->hostname;
 		}
 	}
+
+	// --------------------------------------------------------------------
 
 	/**
 	 * Non-persistent database connection
@@ -104,6 +117,7 @@ class CI_DB_odbc_driver extends CI_DB {
 	/**
 	 * Begin Transaction
 	 *
+	 * @param	bool	$test_mode = FALSE
 	 * @return	bool
 	 */
 	public function trans_begin($test_mode = FALSE)
@@ -227,17 +241,17 @@ class CI_DB_odbc_driver extends CI_DB {
 	 *
 	 * Generates a platform-specific query string so that the table names can be fetched
 	 *
-	 * @param	bool
+	 * @param	bool	$prefix_limit = FALSE
 	 * @return	string
 	 */
 	protected function _list_tables($prefix_limit = FALSE)
 	{
-		$sql = 'SHOW TABLES FROM '.$this->database;
+		$sql = "SELECT table_name FROM information_schema.tables WHERE table_schema = '".$this->schema."'";
 
 		if ($prefix_limit !== FALSE && $this->dbprefix !== '')
 		{
-			//$sql .= " LIKE '".$this->escape_like_str($this->dbprefix)."%' ".sprintf($this->_like_escape_str, $this->_like_escape_chr);
-			return FALSE; // not currently supported
+			return $sql." AND table_name LIKE '".$this->escape_like_str($this->dbprefix)."%' "
+				.sprintf($this->_like_escape_str, $this->_like_escape_chr);
 		}
 
 		return $sql;
@@ -291,17 +305,19 @@ class CI_DB_odbc_driver extends CI_DB {
 	// --------------------------------------------------------------------
 
 	/**
-	 * From Tables
+	 * Update statement
 	 *
-	 * This function implicitly groups FROM tables so there is no confusion
-	 * about operator precedence in harmony with SQL standards
+	 * Generates a platform-specific update string from the supplied data
 	 *
-	 * @param	array
+	 * @param	string	the table name
+	 * @param	array	the update data
 	 * @return	string
-	 */
-	protected function _from_tables($tables)
+         */
+	protected function _update($table, $values)
 	{
-		return is_array($tables) ? implode(', ', $tables) : $tables;
+		$this->qb_limit = FALSE;
+		$this->qb_orderby = array();
+		return parent::_update($table, $values);
 	}
 
 	// --------------------------------------------------------------------
@@ -320,6 +336,22 @@ class CI_DB_odbc_driver extends CI_DB {
 	protected function _truncate($table)
 	{
 		return 'DELETE FROM '.$table;
+	}
+
+	// --------------------------------------------------------------------
+
+	/**
+	 * Delete statement
+	 *
+	 * Generates a platform-specific delete string from the supplied data
+	 *
+	 * @param	string	the table name
+	 * @return	string
+	 */
+	protected function _delete($table)
+	{
+		$this->qb_limit = FALSE;
+		return parent::_delete($table);
 	}
 
 	// --------------------------------------------------------------------
