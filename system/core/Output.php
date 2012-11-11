@@ -1,4 +1,4 @@
-<?php if ( ! defined('BASEPATH')) exit('No direct script access allowed');
+<?php
 /**
  * CodeIgniter
  *
@@ -24,6 +24,7 @@
  * @since		Version 1.0
  * @filesource
  */
+defined('BASEPATH') OR exit('No direct script access allowed');
 
 /**
  * Output Class
@@ -188,7 +189,7 @@ class CI_Output {
 	 * @param	bool	$replace	Whether to replace the old header value, if already set
 	 * @return	object	$this
 	 */
-	public function set_header($header, $replace)
+	public function set_header($header, $replace = TRUE)
 	{
 		// If zlib.output_compression is enabled it will compress the output,
 		// but it will not modify the content-length header to compensate for
