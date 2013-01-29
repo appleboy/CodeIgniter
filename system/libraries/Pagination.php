@@ -18,7 +18,7 @@
  *
  * @package		CodeIgniter
  * @author		EllisLab Dev Team
- * @copyright	Copyright (c) 2008 - 2012, EllisLab, Inc. (http://ellislab.com/)
+ * @copyright	Copyright (c) 2008 - 2013, EllisLab, Inc. (http://ellislab.com/)
  * @license		http://opensource.org/licenses/OSL-3.0 Open Software License (OSL 3.0)
  * @link		http://codeigniter.com
  * @since		Version 1.0
@@ -460,13 +460,15 @@ class CI_Pagination {
 			// Unset the controll, method, old-school routing options
 			unset($get['c'], $get['m'], $get[$this->query_string_segment]);
 
-			if ( ! $get) $get = array();
+			if ( ! empty($get))
+			{
+				// Put everything else onto the end
+				$query_string = (strpos($this->base_url, '?') !== FALSE ? '&amp;' : '?')
+						.http_build_query($get, '', '&amp;');
 
-			// Put everything else onto the end
-			$query_string = (strpos($this->base_url, '&amp;') !== FALSE ? '&amp;' : '?') . http_build_query($get, '', '&amp;');
-
-			// Add this after the suffix to put it into more links easily
-			$this->suffix .= $query_string;
+				// Add this after the suffix to put it into more links easily
+				$this->suffix .= $query_string;
+			}
 		}
 
 		// Render the "First" link

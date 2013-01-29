@@ -18,7 +18,7 @@
  *
  * @package		CodeIgniter
  * @author		EllisLab Dev Team
- * @copyright	Copyright (c) 2008 - 2012, EllisLab, Inc. (http://ellislab.com/)
+ * @copyright	Copyright (c) 2008 - 2013, EllisLab, Inc. (http://ellislab.com/)
  * @license		http://opensource.org/licenses/OSL-3.0 Open Software License (OSL 3.0)
  * @link		http://codeigniter.com
  * @since		Version 1.0
@@ -178,8 +178,13 @@ class CI_Input {
 	public function get($index = NULL, $xss_clean = FALSE)
 	{
 		// Check if a field has been provided
-		if ($index === NULL && ! empty($_GET))
+		if ($index === NULL)
 		{
+			if (empty($_GET))
+			{
+				return array();
+			}
+
 			$get = array();
 
 			// loop through the full _GET array
@@ -205,8 +210,13 @@ class CI_Input {
 	public function post($index = NULL, $xss_clean = FALSE)
 	{
 		// Check if a field has been provided
-		if ($index === NULL && ! empty($_POST))
+		if ($index === NULL)
 		{
+			if (empty($_POST))
+			{
+				return array();
+			}
+
 			$post = array();
 
 			// Loop through the full _POST array and return it
@@ -710,9 +720,9 @@ class CI_Input {
 		}
 
 		// Standardize newlines if needed
-		if ($this->_standardize_newlines === TRUE && strpos($str, "\r") !== FALSE)
+		if ($this->_standardize_newlines === TRUE)
 		{
-			return str_replace(array("\r\n", "\r", "\r\n\n"), PHP_EOL, $str);
+			return preg_replace('/(?:\r\n|[\r\n])/', PHP_EOL, $str);
 		}
 
 		return $str;
@@ -768,9 +778,9 @@ class CI_Input {
 
 			foreach ($_SERVER as $key => $val)
 			{
-				if (strpos($key, 'HTTP_') === 0)
+				if (sscanf($key, 'HTTP_%s', $header) === 1)
 				{
-					$headers[substr($key, 5)] = $this->_fetch_from_array($_SERVER, $key, $xss_clean);
+					$headers[$header] = $this->_fetch_from_array($_SERVER, $key, $xss_clean);
 				}
 			}
 		}
@@ -778,7 +788,7 @@ class CI_Input {
 		// take SOME_HEADER and turn it into Some-Header
 		foreach ($headers as $key => $val)
 		{
-			$key = str_replace('_', ' ', strtolower($key));
+			$key = str_replace(array('_', '-'), ' ', strtolower($key));
 			$key = str_replace(' ', '-', ucwords($key));
 
 			$this->headers[$key] = $val;

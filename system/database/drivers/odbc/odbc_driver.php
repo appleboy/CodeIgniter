@@ -18,7 +18,7 @@
  *
  * @package		CodeIgniter
  * @author		EllisLab Dev Team
- * @copyright	Copyright (c) 2008 - 2012, EllisLab, Inc. (http://ellislab.com/)
+ * @copyright	Copyright (c) 2008 - 2013, EllisLab, Inc. (http://ellislab.com/)
  * @license		http://opensource.org/licenses/OSL-3.0 Open Software License (OSL 3.0)
  * @link		http://codeigniter.com
  * @since		Version 1.0
@@ -73,6 +73,13 @@ class CI_DB_odbc_driver extends CI_DB {
 	 */
 	protected $_like_escape_str = " {escape '%s'} ";
 
+	/**
+	 * ORDER BY random keyword
+	 *
+	 * @var	array
+	 */
+	protected $_random_keyword = array('RND()', 'RND(%d)');
+
 	// --------------------------------------------------------------------
 
 	/**
@@ -84,8 +91,6 @@ class CI_DB_odbc_driver extends CI_DB {
 	public function __construct($params)
 	{
 		parent::__construct($params);
-
-		$this->_random_keyword = ' RND('.time().')'; // database specific random keyword
 
 		// Legacy support for DSN in the hostname field
 		if (empty($this->dsn))
@@ -198,35 +203,14 @@ class CI_DB_odbc_driver extends CI_DB {
 	// --------------------------------------------------------------------
 
 	/**
-	 * Escape String
+	 * Platform-dependant string escape
 	 *
-	 * @param	string	$str
-	 * @param	bool	$like	Whether or not the string will be used in a LIKE condition
+	 * @param	string
 	 * @return	string
 	 */
-	public function escape_str($str, $like = FALSE)
+	protected function _escape_str($str)
 	{
-		if (is_array($str))
-		{
-			foreach ($str as $key => $val)
-			{
-				$str[$key] = $this->escape_str($val, $like);
-			}
-
-			return $str;
-		}
-
-		$str = remove_invisible_characters($str);
-
-		// escape LIKE condition wildcards
-		if ($like === TRUE)
-		{
-			return str_replace(array($this->_like_escape_chr, '%', '_'),
-						array($this->_like_escape_chr.$this->_like_escape_chr, $this->_like_escape_chr.'%', $this->_like_escape_chr.'_'),
-						$str);
-		}
-
-		return $str;
+		return remove_invisible_characters($str);
 	}
 
 	// --------------------------------------------------------------------
@@ -331,7 +315,7 @@ class CI_DB_odbc_driver extends CI_DB {
 	 * @param	string	$table
 	 * @param	array	$values
 	 * @return	string
-         */
+	 */
 	protected function _update($table, $values)
 	{
 		$this->qb_limit = FALSE;

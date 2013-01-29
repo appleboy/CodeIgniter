@@ -18,7 +18,7 @@
  *
  * @package		CodeIgniter
  * @author		EllisLab Dev Team
- * @copyright	Copyright (c) 2008 - 2012, EllisLab, Inc. (http://ellislab.com/)
+ * @copyright	Copyright (c) 2008 - 2013, EllisLab, Inc. (http://ellislab.com/)
  * @license		http://opensource.org/licenses/OSL-3.0 Open Software License (OSL 3.0)
  * @link		http://codeigniter.com
  * @since		Version 1.0
@@ -53,9 +53,9 @@ class CI_DB_sqlite_driver extends CI_DB {
 	/**
 	 * ORDER BY random keyword
 	 *
-	 * @var	string
+	 * @var	array
 	 */
-	protected $_random_keyword = ' Random()'; // database specific random keyword
+	protected $_random_keyword = array('RANDOM()', 'RANDOM()');
 
 	// --------------------------------------------------------------------
 
@@ -200,35 +200,14 @@ class CI_DB_sqlite_driver extends CI_DB {
 	// --------------------------------------------------------------------
 
 	/**
-	 * Escape String
+	 * Platform-dependant string escape
 	 *
-	 * @param	string	$str
-	 * @param	bool	$like	Whether or not the string will be used in a LIKE condition
+	 * @param	string
 	 * @return	string
 	 */
-	public function escape_str($str, $like = FALSE)
+	protected function _escape_str($str)
 	{
-		if (is_array($str))
-		{
-			foreach ($str as $key => $val)
-			{
-				$str[$key] = $this->escape_str($val, $like);
-			}
-
-			return $str;
-		}
-
-		$str = sqlite_escape_string($str);
-
-		// escape LIKE condition wildcards
-		if ($like === TRUE)
-		{
-			return str_replace(array($this->_like_escape_chr, '%', '_'),
-						array($this->_like_escape_chr.$this->_like_escape_chr, $this->_like_escape_chr.'%', $this->_like_escape_chr.'_'),
-						$str);
-		}
-
-		return $str;
+		return sqlite_escape_string($str);
 	}
 
 	// --------------------------------------------------------------------
@@ -296,16 +275,41 @@ class CI_DB_sqlite_driver extends CI_DB {
 	// --------------------------------------------------------------------
 
 	/**
-	 * Field data query
-	 *
-	 * Generates a platform-specific query so that the column data can be retrieved
+	 * Returns an object with field data
 	 *
 	 * @param	string	$table
-	 * @return	string
+	 * @return	array
 	 */
-	protected function _field_data($table)
+	public function field_data($table = '')
 	{
-		return 'SELECT * FROM '.$this->escape_identifiers($table).' LIMIT 1';
+		if ($table === '')
+		{
+			return ($this->db_debug) ? $this->display_error('db_field_param_missing') : FALSE;
+		}
+
+		if (($query = $this->query('PRAGMA TABLE_INFO('.$this->protect_identifiers($table, TRUE, NULL, FALSE).')')) === FALSE)
+		{
+			return FALSE;
+		}
+
+		$query = $query->result_array();
+		if (empty($query))
+		{
+			return FALSE;
+		}
+
+		$retval = array();
+		for ($i = 0, $c = count($query); $i < $c; $i++)
+		{
+			$retval[$i]			= new stdClass();
+			$retval[$i]->name		= $query[$i]['name'];
+			$retval[$i]->type		= $query[$i]['type'];
+			$retval[$i]->max_length		= NULL;
+			$retval[$i]->default		= $query[$i]['dflt_value'];
+			$retval[$i]->primary_key	= isset($query[$i]['pk']) ? (int) $query[$i]['pk'] : 0;
+		}
+
+		return $retval;
 	}
 
 	// --------------------------------------------------------------------

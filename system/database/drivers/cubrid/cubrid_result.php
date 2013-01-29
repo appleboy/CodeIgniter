@@ -18,7 +18,7 @@
  *
  * @package		CodeIgniter
  * @author		EllisLab Dev Team
- * @copyright	Copyright (c) 2008 - 2012, EllisLab, Inc. (http://ellislab.com/)
+ * @copyright	Copyright (c) 2008 - 2013, EllisLab, Inc. (http://ellislab.com/)
  * @license		http://opensource.org/licenses/OSL-3.0 Open Software License (OSL 3.0)
  * @link		http://codeigniter.com
  * @since		Version 2.1
@@ -88,20 +88,14 @@ class CI_DB_cubrid_result extends CI_DB_result {
 	public function field_data()
 	{
 		$retval = array();
-		$i = 0;
 
-		while ($field = cubrid_fetch_field($this->result_id))
+		for ($i = 0, $c = $this->num_fields(); $i < $c; $i++)
 		{
 			$retval[$i]			= new stdClass();
-			$retval[$i]->name		= $field->name;
-			// CUBRID returns type as e.g. varchar(100),
-			// so we need to remove all digits and brackets.
-			$retval[$i]->type		= preg_replace('/[\d()]/', '', $field->type);
-			$retval[$i]->default		= $field->def;
-			// Use CUBRID's native API to obtain column's max_length,
-			// otherwise $field->max_length has incorrect info
+			$retval[$i]->name		= cubrid_field_name($this->result_id, $i);
+			$retval[$i]->type		= cubrid_field_type($this->result_id, $i);
 			$retval[$i]->max_length		= cubrid_field_len($this->result_id, $i);
-			$retval[$i++]->primary_key	= $field->primary_key;
+			$retval[$i]->primary_key	= (int) (strpos(cubrid_field_flags($this->result_id, $i), 'primary_key') !== FALSE);
 		}
 
 		return $retval;
@@ -136,7 +130,7 @@ class CI_DB_cubrid_result extends CI_DB_result {
 	 * @param	int	$n
 	 * @return	bool
 	 */
-	protected function _data_seek($n = 0)
+	public function data_seek($n = 0)
 	{
 		return cubrid_data_seek($this->result_id, $n);
 	}

@@ -18,7 +18,7 @@
  *
  * @package		CodeIgniter
  * @author		EllisLab Dev Team
- * @copyright	Copyright (c) 2008 - 2012, EllisLab, Inc. (http://ellislab.com/)
+ * @copyright	Copyright (c) 2008 - 2013, EllisLab, Inc. (http://ellislab.com/)
  * @license		http://opensource.org/licenses/OSL-3.0 Open Software License (OSL 3.0)
  * @link		http://codeigniter.com
  * @since		Version 1.0
@@ -53,9 +53,9 @@ class CI_DB_mssql_driver extends CI_DB {
 	/**
 	 * ORDER BY random keyword
 	 *
-	 * @var	string
+	 * @var	array
 	 */
-	protected $_random_keyword = ' NEWID()';
+	protected $_random_keyword = array('NEWID()', 'RAND(%d)');
 
 	/**
 	 * Quoted identifier flag
@@ -104,6 +104,18 @@ class CI_DB_mssql_driver extends CI_DB {
 		if ( ! $this->conn_id)
 		{
 			return FALSE;
+		}
+
+		// ----------------------------------------------------------------
+
+		// Select the DB... assuming a database name is specified in the config file
+		if ($this->database !== '' && ! $this->db_select())
+		{
+			log_message('error', 'Unable to select database: '.$this->database);
+
+			return ($this->db_debug === TRUE)
+				? $this->display_error('db_unable_to_select', $this->database)
+				: FALSE;
 		}
 
 		// Determine how identifiers are escaped
@@ -229,43 +241,6 @@ class CI_DB_mssql_driver extends CI_DB {
 	// --------------------------------------------------------------------
 
 	/**
-	 * Escape String
-	 *
-	 * @param	string	$str
-	 * @param	bool	$like	Whether or not the string will be used in a LIKE condition
-	 * @return	string
-	 */
-	public function escape_str($str, $like = FALSE)
-	{
-		if (is_array($str))
-		{
-			foreach ($str as $key => $val)
-			{
-				$str[$key] = $this->escape_str($val, $like);
-			}
-
-			return $str;
-		}
-
-		// Escape single quotes
-		$str = str_replace("'", "''", remove_invisible_characters($str));
-
-		// escape LIKE condition wildcards
-		if ($like === TRUE)
-		{
-			return str_replace(
-				array($this->_like_escape_chr, '%', '_'),
-				array($this->_like_escape_chr.$this->_like_escape_chr, $this->_like_escape_chr.'%', $this->_like_escape_chr.'_'),
-				$str
-			);
-		}
-
-		return $str;
-	}
-
-	// --------------------------------------------------------------------
-
-	/**
 	 * Affected Rows
 	 *
 	 * @return	int
@@ -293,6 +268,19 @@ class CI_DB_mssql_driver extends CI_DB {
 		$query = $this->query($query);
 		$query = $query->row();
 		return $query->last_id;
+	}
+
+	// --------------------------------------------------------------------
+
+	/**
+	 * Set client character set
+	 *
+	 * @param	string	$charset
+	 * @return	bool
+	 */
+	protected function _db_set_charset($charset)
+	{
+		return (@ini_set('mssql.charset', $charset) !== FALSE);
 	}
 
 	// --------------------------------------------------------------------
@@ -344,22 +332,47 @@ class CI_DB_mssql_driver extends CI_DB {
 	 */
 	protected function _list_columns($table = '')
 	{
-		return "SELECT * FROM INFORMATION_SCHEMA.Columns WHERE TABLE_NAME = '".$table."'";
+		return 'SELECT COLUMN_NAME
+			FROM INFORMATION_SCHEMA.Columns
+			WHERE UPPER(TABLE_NAME) = '.$this->escape(strtoupper($table));
 	}
 
 	// --------------------------------------------------------------------
 
 	/**
-	 * Field data query
-	 *
-	 * Generates a platform-specific query so that the column data can be retrieved
+	 * Returns an object with field data
 	 *
 	 * @param	string	$table
-	 * @return	string
+	 * @return	array
 	 */
-	protected function _field_data($table)
+	public function field_data($table = '')
 	{
-		return 'SELECT TOP 1 * FROM '.$this->protect_identifiers($table);
+		if ($table === '')
+		{
+			return ($this->db_debug) ? $this->display_error('db_field_param_missing') : FALSE;
+		}
+
+		$sql = 'SELECT COLUMN_NAME, DATA_TYPE, CHARACTER_MAXIMUM_LENGTH, NUMERIC_PRECISION, COLUMN_DEFAULT
+			FROM INFORMATION_SCHEMA.Columns
+			WHERE UPPER(TABLE_NAME) = '.$this->escape(strtoupper($table));
+
+		if (($query = $this->query($sql)) === FALSE)
+		{
+			return FALSE;
+		}
+		$query = $query->result_object();
+
+		$retval = array();
+		for ($i = 0, $c = count($query); $i < $c; $i++)
+		{
+			$retval[$i]			= new stdClass();
+			$retval[$i]->name		= $query[$i]->COLUMN_NAME;
+			$retval[$i]->type		= $query[$i]->DATA_TYPE;
+			$retval[$i]->max_length		= ($query[$i]->CHARACTER_MAXIMUM_LENGTH > 0) ? $query[$i]->CHARACTER_MAXIMUM_LENGTH : $query[$i]->NUMERIC_PRECISION;
+			$retval[$i]->default		= $query[$i]->COLUMN_DEFAULT;
+		}
+
+		return $retval;
 	}
 
 	// --------------------------------------------------------------------

@@ -18,7 +18,7 @@
  *
  * @package		CodeIgniter
  * @author		EllisLab Dev Team
- * @copyright	Copyright (c) 2008 - 2012, EllisLab, Inc. (http://ellislab.com/)
+ * @copyright	Copyright (c) 2008 - 2013, EllisLab, Inc. (http://ellislab.com/)
  * @license		http://opensource.org/licenses/OSL-3.0 Open Software License (OSL 3.0)
  * @link		http://codeigniter.com
  * @since		Version 1.0
@@ -89,6 +89,7 @@ class CI_DB_mysql_result extends CI_DB_result {
 	public function list_fields()
 	{
 		$field_names = array();
+		mysql_field_seek($this->result_id, 0);
 		while ($field = mysql_fetch_field($this->result_id))
 		{
 			$field_names[] = $field->name;
@@ -115,8 +116,7 @@ class CI_DB_mysql_result extends CI_DB_result {
 			$retval[$i]->name		= mysql_field_name($this->result_id, $i);
 			$retval[$i]->type		= mysql_field_type($this->result_id, $i);
 			$retval[$i]->max_length		= mysql_field_len($this->result_id, $i);
-			$retval[$i]->primary_key	= (strpos(mysql_field_flags($this->result_id, $i), 'primary_key') === FALSE) ? 0 : 1;
-			$retval[$i]->default		= '';
+			$retval[$i]->primary_key	= (int) (strpos(mysql_field_flags($this->result_id, $i), 'primary_key') !== FALSE);
 		}
 
 		return $retval;
@@ -150,7 +150,7 @@ class CI_DB_mysql_result extends CI_DB_result {
 	 * @param	int	$n
 	 * @return	bool
 	 */
-	protected function _data_seek($n = 0)
+	public function data_seek($n = 0)
 	{
 		return $this->num_rows
 			? @mysql_data_seek($this->result_id, $n)

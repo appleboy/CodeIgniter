@@ -18,7 +18,7 @@
  *
  * @package		CodeIgniter
  * @author		EllisLab Dev Team
- * @copyright	Copyright (c) 2008 - 2012, EllisLab, Inc. (http://ellislab.com/)
+ * @copyright	Copyright (c) 2008 - 2013, EllisLab, Inc. (http://ellislab.com/)
  * @license		http://opensource.org/licenses/OSL-3.0 Open Software License (OSL 3.0)
  * @link		http://codeigniter.com
  * @since		Version 1.0
@@ -406,7 +406,7 @@ class CI_Email {
 	 * Initialize preferences
 	 *
 	 * @param	array
-	 * @return	void
+	 * @return	CI_Email
 	 */
 	public function initialize($config = array())
 	{
@@ -440,7 +440,7 @@ class CI_Email {
 	 * Initialize the Email Data
 	 *
 	 * @param	bool
-	 * @return	object
+	 * @return	CI_Email
 	 */
 	public function clear($clear_attachments = FALSE)
 	{
@@ -474,7 +474,7 @@ class CI_Email {
 	 * @param	string	$from
 	 * @param	string	$name
 	 * @param	string	$return_path = NULL	Return-Path
-	 * @return	object
+	 * @return	CI_Email
 	 */
 	public function from($from, $name = '', $return_path = NULL)
 	{
@@ -522,7 +522,7 @@ class CI_Email {
 	 *
 	 * @param	string
 	 * @param	string
-	 * @return	object
+	 * @return	CI_Email
 	 */
 	public function reply_to($replyto, $name = '')
 	{
@@ -558,7 +558,7 @@ class CI_Email {
 	 * Set Recipients
 	 *
 	 * @param	string
-	 * @return	object
+	 * @return	CI_Email
 	 */
 	public function to($to)
 	{
@@ -586,7 +586,7 @@ class CI_Email {
 	 * Set CC
 	 *
 	 * @param	string
-	 * @return	object
+	 * @return	CI_Email
 	 */
 	public function cc($cc)
 	{
@@ -614,7 +614,7 @@ class CI_Email {
 	 *
 	 * @param	string
 	 * @param	string
-	 * @return	object
+	 * @return	CI_Email
 	 */
 	public function bcc($bcc, $limit = '')
 	{
@@ -649,7 +649,7 @@ class CI_Email {
 	 * Set Email Subject
 	 *
 	 * @param	string
-	 * @return	object
+	 * @return	CI_Email
 	 */
 	public function subject($subject)
 	{
@@ -664,7 +664,7 @@ class CI_Email {
 	 * Set Body
 	 *
 	 * @param	string
-	 * @return	object
+	 * @return	CI_Email
 	 */
 	public function message($body)
 	{
@@ -693,7 +693,7 @@ class CI_Email {
 	 * @param	string	$disposition = 'attachment'
 	 * @param	string	$newname = NULL
 	 * @param	string	$mime = ''
-	 * @return	object
+	 * @return	CI_Email
 	 */
 	public function attach($filename, $disposition = '', $newname = NULL, $mime = '')
 	{
@@ -746,7 +746,7 @@ class CI_Email {
 	 * Set Multipart Value
 	 *
 	 * @param	string
-	 * @return	object
+	 * @return	CI_Email
 	 */
 	public function set_alt_message($str = '')
 	{
@@ -760,7 +760,7 @@ class CI_Email {
 	 * Set Mailtype
 	 *
 	 * @param	string
-	 * @return	object
+	 * @return	CI_Email
 	 */
 	public function set_mailtype($type = 'text')
 	{
@@ -774,7 +774,7 @@ class CI_Email {
 	 * Set Wordwrap
 	 *
 	 * @param	bool
-	 * @return	object
+	 * @return	CI_Email
 	 */
 	public function set_wordwrap($wordwrap = TRUE)
 	{
@@ -788,7 +788,7 @@ class CI_Email {
 	 * Set Protocol
 	 *
 	 * @param	string
-	 * @return	object
+	 * @return	CI_Email
 	 */
 	public function set_protocol($protocol = 'mail')
 	{
@@ -802,7 +802,7 @@ class CI_Email {
 	 * Set Priority
 	 *
 	 * @param	int
-	 * @return	object
+	 * @return	CI_Email
 	 */
 	public function set_priority($n = 3)
 	{
@@ -816,7 +816,7 @@ class CI_Email {
 	 * Set Newline Character
 	 *
 	 * @param	string
-	 * @return	object
+	 * @return	CI_Email
 	 */
 	public function set_newline($newline = "\n")
 	{
@@ -830,7 +830,7 @@ class CI_Email {
 	 * Set CRLF
 	 *
 	 * @param	string
-	 * @return	object
+	 * @return	CI_Email
 	 */
 	public function set_crlf($crlf = "\n")
 	{
@@ -1335,7 +1335,7 @@ class CI_Email {
 		for ($i = 0, $c = count($this->_attachments), $z = 0; $i < $c; $i++)
 		{
 			$filename = $this->_attachments[$i]['name'][0];
-			$basename = is_null($this->_attachments[$i]['name'][1])
+			$basename = ($this->_attachments[$i]['name'][1] === NULL)
 				? basename($filename) : $this->_attachments[$i]['name'][1];
 			$ctype = $this->_attachments[$i]['type'];
 			$file_content = '';
@@ -1935,7 +1935,7 @@ class CI_Email {
 
 		$this->_debug_msg[] = '<pre>'.$cmd.': '.$reply.'</pre>';
 
-		if ( (int) substr($reply, 0, 3) !== $resp)
+		if ((int) substr($reply, 0, 3) !== $resp)
 		{
 			$this->_set_error_message('lang:email_smtp_error', $reply);
 			return FALSE;
@@ -2062,9 +2062,11 @@ class CI_Email {
 	/**
 	 * Get Debug Message
 	 *
+	 * @param	array	$include	List of raw data chunks to include in the output
+	 *					Valid options are: 'headers', 'subject', 'body'
 	 * @return	string
 	 */
-	public function print_debugger()
+	public function print_debugger($include = array('headers', 'subject', 'body'))
 	{
 		$msg = '';
 
@@ -2076,7 +2078,26 @@ class CI_Email {
 			}
 		}
 
-		return $msg.'<pre>'.$this->_header_str."\n".htmlspecialchars($this->_subject)."\n".htmlspecialchars($this->_finalbody).'</pre>';
+		// Determine which parts of our raw data needs to be printed
+		$raw_data = '';
+		is_array($include) OR $include = array($include);
+
+		if (in_array('headers', $include, TRUE))
+		{
+			$raw_data = $this->_header_str."\n";
+		}
+
+		if (in_array('subject', $include, TRUE))
+		{
+			$raw_data .= htmlspecialchars($this->_subject)."\n";
+		}
+
+		if (in_array('body', $include, TRUE))
+		{
+			$raw_data .= htmlspecialchars($this->_finalbody);
+		}
+
+		return $msg.($raw_data === '' ? '' : '<pre>'.$raw_data.'</pre>');
 	}
 
 	// --------------------------------------------------------------------
@@ -2093,7 +2114,7 @@ class CI_Email {
 		$CI =& get_instance();
 		$CI->lang->load('email');
 
-		if (substr($msg, 0, 5) !== 'lang:' OR FALSE === ($line = $CI->lang->line(substr($msg, 5))))
+		if (sscanf($msg, 'lang:%s', $line) !== 1 OR FALSE === ($line = $CI->lang->line($line)))
 		{
 			$this->_debug_msg[] = str_replace('%s', $val, $msg).'<br />';
 		}

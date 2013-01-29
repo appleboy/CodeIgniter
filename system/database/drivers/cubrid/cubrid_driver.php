@@ -18,7 +18,7 @@
  *
  * @package		CodeIgniter
  * @author		EllisLab Dev Team
- * @copyright	Copyright (c) 2008 - 2012, EllisLab, Inc. (http://ellislab.com/)
+ * @copyright	Copyright (c) 2008 - 2013, EllisLab, Inc. (http://ellislab.com/)
  * @license		http://opensource.org/licenses/OSL-3.0 Open Software License (OSL 3.0)
  * @link		http://codeigniter.com
  * @since		Version 2.1
@@ -63,6 +63,13 @@ class CI_DB_cubrid_driver extends CI_DB {
 	 * @var	string
 	 */
 	protected $_escape_char = '`';
+
+	/**
+	 * ORDER BY random keyword
+	 *
+	 * @var	array
+	 */
+	protected $_random_keyword = array('RANDOM()', 'RANDOM(%d)');
 
 	// --------------------------------------------------------------------
 
@@ -288,42 +295,21 @@ class CI_DB_cubrid_driver extends CI_DB {
 	// --------------------------------------------------------------------
 
 	/**
-	 * Escape String
+	 * Platform-dependant string escape
 	 *
-	 * @param	string	$str
-	 * @param	bool	$like	Whether or not the string will be used in a LIKE condition
+	 * @param	string
 	 * @return	string
 	 */
-	public function escape_str($str, $like = FALSE)
+	protected function _escape_str($str)
 	{
-		if (is_array($str))
-		{
-			foreach ($str as $key => $val)
-			{
-				$str[$key] = $this->escape_str($val, $like);
-			}
-
-			return $str;
-		}
-
 		if (function_exists('cubrid_real_escape_string') &&
 			(is_resource($this->conn_id)
 				OR (get_resource_type($this->conn_id) === 'Unknown' && preg_match('/Resource id #/', strval($this->conn_id)))))
 		{
-			$str = cubrid_real_escape_string($str, $this->conn_id);
-		}
-		else
-		{
-			$str = addslashes($str);
+			return cubrid_real_escape_string($str, $this->conn_id);
 		}
 
-		// escape LIKE condition wildcards
-		if ($like === TRUE)
-		{
-			return str_replace(array('%', '_'), array('\\%', '\\_'), $str);
-		}
-
-		return $str;
+		return addslashes($str);
 	}
 
 	// --------------------------------------------------------------------
@@ -390,16 +376,40 @@ class CI_DB_cubrid_driver extends CI_DB {
 	// --------------------------------------------------------------------
 
 	/**
-	 * Field data query
-	 *
-	 * Generates a platform-specific query so that the column data can be retrieved
+	 * Returns an object with field data
 	 *
 	 * @param	string	$table
-	 * @return	string
+	 * @return	array
 	 */
-	protected function _field_data($table)
+	public function field_data($table = '')
 	{
-		return 'SELECT * FROM '.$table.' LIMIT 1';
+		if ($table === '')
+		{
+			return ($this->db_debug) ? $this->display_error('db_field_param_missing') : FALSE;
+		}
+
+		if (($query = $this->query('SHOW COLUMNS FROM '.$this->protect_identifiers($table, TRUE, NULL, FALSE))) === FALSE)
+		{
+			return FALSE;
+		}
+		$query = $query->result_object();
+
+		$retval = array();
+		for ($i = 0, $c = count($query); $i < $c; $i++)
+		{
+			$retval[$i]			= new stdClass();
+			$retval[$i]->name		= $query[$i]->Field;
+
+			sscanf($query[$i]->Type, '%[a-z](%d)',
+				$retval[$i]->type,
+				$retval[$i]->max_length
+			);
+
+			$retval[$i]->default		= $query[$i]->Default;
+			$retval[$i]->primary_key	= (int) ($query[$i]->Key === 'PRI');
+		}
+
+		return $retval;
 	}
 
 	// --------------------------------------------------------------------

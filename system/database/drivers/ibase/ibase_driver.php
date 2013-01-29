@@ -18,7 +18,7 @@
  *
  * @package		CodeIgniter
  * @author		EllisLab Dev Team
- * @copyright	Copyright (c) 2008 - 2012, EllisLab, Inc. (http://ellislab.com/)
+ * @copyright	Copyright (c) 2008 - 2013, EllisLab, Inc. (http://ellislab.com/)
  * @license		http://opensource.org/licenses/OSL-3.0 Open Software License (OSL 3.0)
  * @link		http://codeigniter.com
  * @since		Version 3.0
@@ -53,9 +53,9 @@ class CI_DB_ibase_driver extends CI_DB {
 	/**
 	 * ORDER BY random keyword
 	 *
-	 * @var	string
+	 * @var	array
 	 */
-	protected $_random_keyword = ' Random()';
+	protected $_random_keyword = array('RAND()', 'RAND()');
 
 	/**
 	 * IBase Transaction status flag
@@ -192,38 +192,6 @@ class CI_DB_ibase_driver extends CI_DB {
 	// --------------------------------------------------------------------
 
 	/**
-	 * Escape String
-	 *
-	 * @param	string	$str
-	 * @param	bool	$like	Whether or not the string will be used in a LIKE condition
-	 * @return	string
-	 */
-	public function escape_str($str, $like = FALSE)
-	{
-		if (is_array($str))
-		{
-			foreach ($str as $key => $val)
-			{
-				$str[$key] = $this->escape_str($val, $like);
-			}
-
-			return $str;
-		}
-
-		// escape LIKE condition wildcards
-		if ($like === TRUE)
-		{
-			return str_replace(array($this->_like_escape_chr, '%', '_'),
-						array($this->_like_escape_chr.$this->_like_escape_chr, $this->_like_escape_chr.'%', $this->_like_escape_chr.'_'),
-						$str);
-		}
-
-		return $str;
-	}
-
-	// --------------------------------------------------------------------
-
-	/**
 	 * Affected Rows
 	 *
 	 * @return	int
@@ -289,19 +257,46 @@ class CI_DB_ibase_driver extends CI_DB {
 	// --------------------------------------------------------------------
 
 	/**
-	 * Field data query
-	 *
-	 * Generates a platform-specific query so that the column data can be retrieved
+	 * Returns an object with field data
 	 *
 	 * @param	string	$table
-	 * @return	string
+	 * @return	array
 	 */
-	protected function _field_data($table)
+	public function field_data($table = '')
 	{
-		$this->qb_limit = 1;
-		$sql = $this->_limit('SELECT * FROM '.$this->protect_identifiers($table));
-		$this->qb_limit = 0;
-		return $sql;
+		if ($table === '')
+		{
+			return ($this->db_debug) ? $this->display_error('db_field_param_missing') : FALSE;
+		}
+
+		$sql = 'SELECT "rfields"."RDB$FIELD_NAME" AS "name",
+				CASE "fields"."RDB$FIELD_TYPE"
+					WHEN 7 THEN \'SMALLINT\'
+					WHEN 8 THEN \'INTEGER\'
+					WHEN 9 THEN \'QUAD\'
+					WHEN 10 THEN \'FLOAT\'
+					WHEN 11 THEN \'DFLOAT\'
+					WHEN 12 THEN \'DATE\'
+					WHEN 13 THEN \'TIME\'
+					WHEN 14 THEN \'CHAR\'
+					WHEN 16 THEN \'INT64\'
+					WHEN 27 THEN \'DOUBLE\'
+					WHEN 35 THEN \'TIMESTAMP\'
+					WHEN 37 THEN \'VARCHAR\'
+					WHEN 40 THEN \'CSTRING\'
+					WHEN 261 THEN \'BLOB\'
+					ELSE NULL
+				END AS "type",
+				"fields"."RDB$FIELD_LENGTH" AS "max_length",
+				"rfields"."RDB$DEFAULT_VALUE" AS "default"
+			FROM "RDB$RELATION_FIELDS" "rfields"
+				JOIN "RDB$FIELDS" "fields" ON "rfields"."RDB$FIELD_SOURCE" = "fields"."RDB$FIELD_NAME"
+			WHERE "rfields"."RDB$RELATION_NAME" = '.$this->escape($table).'
+			ORDER BY "rfields"."RDB$FIELD_POSITION"';
+
+		return (($query = $this->query($sql)) !== FALSE)
+			? $query->result_object()
+			: FALSE;
 	}
 
 	// --------------------------------------------------------------------
@@ -394,7 +389,7 @@ class CI_DB_ibase_driver extends CI_DB {
 				.($this->qb_offset ? $this->qb_offset.' TO '.($this->qb_limit + $this->qb_offset) : $this->qb_limit);
 		}
 
-		return preg_replace('`SELECT`i', 'SELECT '.$select, $sql);
+		return preg_replace('`SELECT`i', 'SELECT '.$select, $sql, 1);
 	}
 
 	// --------------------------------------------------------------------

@@ -18,7 +18,7 @@
  *
  * @package		CodeIgniter
  * @author		EllisLab Dev Team
- * @copyright	Copyright (c) 2008 - 2012, EllisLab, Inc. (http://ellislab.com/)
+ * @copyright	Copyright (c) 2008 - 2013, EllisLab, Inc. (http://ellislab.com/)
  * @license		http://opensource.org/licenses/OSL-3.0 Open Software License (OSL 3.0)
  * @link		http://codeigniter.com
  * @since		Version 1.0
@@ -106,9 +106,9 @@ abstract class CI_DB_utility {
 			return $this->db->data_cache['db_names'];
 		}
 
-		for ($i = 0, $c = count($query); $i < $c; $i++)
+		for ($i = 0, $query = $query->result_array(), $c = count($query); $i < $c; $i++)
 		{
-			$this->db->data_cache['db_names'] = current($query[$i]);
+			$this->db->data_cache['db_names'][] = current($query[$i]);
 		}
 
 		return $this->db->data_cache['db_names'];
@@ -146,7 +146,7 @@ abstract class CI_DB_utility {
 		if ($query !== FALSE)
 		{
 			$query = $query->result_array();
-			return current($res);
+			return current($query);
 		}
 
 		return FALSE;
@@ -320,14 +320,15 @@ abstract class CI_DB_utility {
 
 		// Set up our default preferences
 		$prefs = array(
-				'tables'		=> array(),
-				'ignore'		=> array(),
-				'filename'		=> '',
-				'format'		=> 'gzip', // gzip, zip, txt
-				'add_drop'		=> TRUE,
-				'add_insert'		=> TRUE,
-				'newline'		=> "\n"
-			);
+			'tables'		=> array(),
+			'ignore'		=> array(),
+			'filename'		=> '',
+			'format'		=> 'gzip', // gzip, zip, txt
+			'add_drop'		=> TRUE,
+			'add_insert'		=> TRUE,
+			'newline'		=> "\n",
+			'foreign_key_checks'	=> TRUE
+		);
 
 		// Did the user submit any preferences? If so set them....
 		if (count($params) > 0)

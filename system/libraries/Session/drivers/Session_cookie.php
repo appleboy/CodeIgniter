@@ -18,7 +18,7 @@
  *
  * @package		CodeIgniter
  * @author		EllisLab Dev Team
- * @copyright	Copyright (c) 2008 - 2012, EllisLab, Inc. (http://ellislab.com/)
+ * @copyright	Copyright (c) 2008 - 2013, EllisLab, Inc. (http://ellislab.com/)
  * @license		http://opensource.org/licenses/OSL-3.0 Open Software License (OSL 3.0)
  * @link		http://codeigniter.com
  * @since		Version 1.0
@@ -219,7 +219,7 @@ class CI_Session_cookie extends CI_Session_driver {
 				: $this->CI->config->item($key);
 		}
 
-		if ($this->encryption_key === '')
+		if (empty($this->encryption_key))
 		{
 			show_error('In order to use the Cookie Session driver you are required to set an encryption key in your config file.');
 		}
@@ -457,7 +457,7 @@ class CI_Session_cookie extends CI_Session_driver {
 			}
 
 			// No result? Kill it!
-			if ($query->num_rows() === 0)
+			if (empty($query) OR $query->num_rows() === 0)
 			{
 				$this->sess_destroy();
 				return FALSE;

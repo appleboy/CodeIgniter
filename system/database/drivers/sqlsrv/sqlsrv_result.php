@@ -18,7 +18,7 @@
  *
  * @package		CodeIgniter
  * @author		EllisLab Dev Team
- * @copyright	Copyright (c) 2008 - 2012, EllisLab, Inc. (http://ellislab.com/)
+ * @copyright	Copyright (c) 2008 - 2013, EllisLab, Inc. (http://ellislab.com/)
  * @license		http://opensource.org/licenses/OSL-3.0 Open Software License (OSL 3.0)
  * @link		http://codeigniter.com
  * @since		Version 1.0
@@ -94,16 +94,12 @@ class CI_DB_sqlsrv_result extends CI_DB_result {
 	public function field_data()
 	{
 		$retval = array();
-		foreach (sqlsrv_field_metadata($this->result_id) as $offset => $field)
+		foreach (sqlsrv_field_metadata($this->result_id) as $i => $field)
 		{
-			$F 		= new stdClass();
-			$F->name 	= $field['Name'];
-			$F->type 	= $field['Type'];
-			$F->max_length	= $field['Size'];
-			$F->primary_key = 0;
-			$F->default	= '';
-
-			$retval[] = $F;
+			$retval[$i]		= new stdClass();
+			$retval[$i]->name	= $field['Name'];
+			$retval[$i]->type	= $field['Type'];
+			$retval[$i]->max_length	= $field['Size'];
 		}
 
 		return $retval;

@@ -18,7 +18,7 @@
  *
  * @package		CodeIgniter
  * @author		EllisLab Dev Team
- * @copyright	Copyright (c) 2008 - 2012, EllisLab, Inc. (http://ellislab.com/)
+ * @copyright	Copyright (c) 2008 - 2013, EllisLab, Inc. (http://ellislab.com/)
  * @license		http://opensource.org/licenses/OSL-3.0 Open Software License (OSL 3.0)
  * @link		http://codeigniter.com
  * @since		Version 1.0
@@ -214,7 +214,7 @@ class CI_DB_mysqli_driver extends CI_DB {
 		// modifies the query so that it a proper number of affected rows is returned.
 		if ($this->delete_hack === TRUE && preg_match('/^\s*DELETE\s+FROM\s+(\S+)\s*$/i', $sql))
 		{
-			return preg_replace('/^\s*DELETE\s+FROM\s+(\S+)\s*$/', 'DELETE FROM \\1 WHERE 1=1', $sql);
+			return trim($sql).' WHERE 1=1';
 		}
 
 		return $sql;
@@ -289,35 +289,16 @@ class CI_DB_mysqli_driver extends CI_DB {
 	// --------------------------------------------------------------------
 
 	/**
-	 * Escape String
+	 * Platform-dependant string escape
 	 *
-	 * @param	string	$str
-	 * @param	bool	$like	Whether or not the string will be used in a LIKE condition
+	 * @param	string
 	 * @return	string
 	 */
-	public function escape_str($str, $like = FALSE)
+	protected function _escape_str($str)
 	{
-		if (is_array($str))
-		{
-			foreach ($str as $key => $val)
-			{
-				$str[$key] = $this->escape_str($val, $like);
-			}
-
-			return $str;
-		}
-
-		$str = is_object($this->conn_id) ? $this->conn_id->real_escape_string($str) : addslashes($str);
-
-		// escape LIKE condition wildcards
-		if ($like === TRUE)
-		{
-			return str_replace(array($this->_like_escape_chr, '%', '_'),
-						array($this->_like_escape_chr.$this->_like_escape_chr, $this->_like_escape_chr.'%', $this->_like_escape_chr.'_'),
-						$str);
-		}
-
-		return $str;
+		return is_object($this->conn_id)
+			? $this->conn_id->real_escape_string($str)
+			: addslashes($str);
 	}
 
 	// --------------------------------------------------------------------
@@ -387,7 +368,7 @@ class CI_DB_mysqli_driver extends CI_DB {
 	 * Returns an object with field data
 	 *
 	 * @param	string	$table
-	 * @return	object
+	 * @return	array
 	 */
 	public function field_data($table = '')
 	{
@@ -396,19 +377,24 @@ class CI_DB_mysqli_driver extends CI_DB {
 			return ($this->db_debug) ? $this->display_error('db_field_param_missing') : FALSE;
 		}
 
-		$query = $this->query('DESCRIBE '.$this->protect_identifiers($table, TRUE, NULL, FALSE));
+		if (($query = $this->query('SHOW COLUMNS FROM '.$this->protect_identifiers($table, TRUE, NULL, FALSE))) === FALSE)
+		{
+			return FALSE;
+		}
 		$query = $query->result_object();
 
 		$retval = array();
 		for ($i = 0, $c = count($query); $i < $c; $i++)
 		{
-			preg_match('/([a-z]+)(\(\d+\))?/', $query[$i]->Type, $matches);
-
 			$retval[$i]			= new stdClass();
 			$retval[$i]->name		= $query[$i]->Field;
-			$retval[$i]->type		= empty($matches[1]) ? NULL : $matches[1];
+
+			sscanf($query[$i]->Type, '%[a-z](%d)',
+				$retval[$i]->type,
+				$retval[$i]->max_length
+			);
+
 			$retval[$i]->default		= $query[$i]->Default;
-			$retval[$i]->max_length		= empty($matches[2]) ? NULL : preg_replace('/[^\d]/', '', $matches[2]);
 			$retval[$i]->primary_key	= (int) ($query[$i]->Key === 'PRI');
 		}
 
@@ -461,7 +447,7 @@ class CI_DB_mysqli_driver extends CI_DB {
 			{
 				if ($field !== $index)
 				{
-					$final[$field][] =  'WHEN '.$index.' = '.$val[$index].' THEN '.$val[$field];
+					$final[$field][] = 'WHEN '.$index.' = '.$val[$index].' THEN '.$val[$field];
 				}
 			}
 		}

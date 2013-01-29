@@ -18,7 +18,7 @@
  *
  * @package		CodeIgniter
  * @author		EllisLab Dev Team
- * @copyright	Copyright (c) 2008 - 2012, EllisLab, Inc. (http://ellislab.com/)
+ * @copyright	Copyright (c) 2008 - 2013, EllisLab, Inc. (http://ellislab.com/)
  * @license		http://opensource.org/licenses/OSL-3.0 Open Software License (OSL 3.0)
  * @link		http://codeigniter.com
  * @since		Version 1.0
@@ -95,9 +95,19 @@ class CI_DB_Cache {
 			? rtrim(realpath($path), DIRECTORY_SEPARATOR).DIRECTORY_SEPARATOR
 			: rtrim($path, '/').'/';
 
-		if ( ! is_dir($path) OR ! is_really_writable($path))
+		if ( ! is_dir($path))
 		{
+			log_message('debug', 'DB cache path error: '.$path);
+
 			// If the path is wrong we'll turn off caching
+			return $this->db->cache_off();
+		}
+
+		if ( ! is_really_writable($path))
+		{
+			log_message('debug', 'DB cache dir not writable: '.$path);
+
+			// If the path is not really writable we'll turn off caching
 			return $this->db->cache_off();
 		}
 
@@ -122,7 +132,7 @@ class CI_DB_Cache {
 		$segment_two = ($this->CI->uri->segment(2) == FALSE) ? 'index' : $this->CI->uri->segment(2);
 		$filepath = $this->db->cachedir.$segment_one.'+'.$segment_two.'/'.md5($sql);
 
-		if (FALSE === ($cachedata = file_get_contents($filepath)))
+		if (FALSE === ($cachedata = @file_get_contents($filepath)))
 		{
 			return FALSE;
 		}

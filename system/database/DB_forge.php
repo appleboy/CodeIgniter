@@ -18,7 +18,7 @@
  *
  * @package		CodeIgniter
  * @author		EllisLab Dev Team
- * @copyright	Copyright (c) 2008 - 2012, EllisLab, Inc. (http://ellislab.com/)
+ * @copyright	Copyright (c) 2008 - 2013, EllisLab, Inc. (http://ellislab.com/)
  * @license		http://opensource.org/licenses/OSL-3.0 Open Software License (OSL 3.0)
  * @link		http://codeigniter.com
  * @since		Version 1.0
@@ -229,7 +229,7 @@ abstract class CI_DB_forge {
 	 *
 	 * @param	string	$key
 	 * @param	bool	$primary
-	 * @return	object
+	 * @return	CI_DB_forge
 	 */
 	public function add_key($key = '', $primary = FALSE)
 	{
@@ -266,7 +266,7 @@ abstract class CI_DB_forge {
 	 * Add Field
 	 *
 	 * @param	array	$field
-	 * @return	object
+	 * @return	CI_DB_forge
 	 */
 	public function add_field($field = '')
 	{
@@ -402,7 +402,7 @@ abstract class CI_DB_forge {
 		// Are indexes created from within the CREATE TABLE statement? (e.g. in MySQL)
 		if ($this->_create_table_keys === TRUE)
 		{
-			$columns .= $this->_process_indexes();
+			$columns .= $this->_process_indexes($table);
 		}
 
 		// _create_table will usually have the following format: "%s %s (%s\n)"
@@ -532,11 +532,13 @@ abstract class CI_DB_forge {
 	/**
 	 * Column Add
 	 *
+	 * @todo	Remove deprecated $_after option in 3.1+
 	 * @param	string	$table	Table name
 	 * @param	array	$field	Column definition
+	 * @param	string	$_after	Column for AFTER clause (deprecated)
 	 * @return	bool
 	 */
-	public function add_column($table = '', $field = array())
+	public function add_column($table = '', $field = array(), $_after = NULL)
 	{
 		if ($table === '')
 		{
@@ -551,6 +553,12 @@ abstract class CI_DB_forge {
 
 		foreach (array_keys($field) as $k)
 		{
+			// Backwards-compatibility work-around for MySQL/CUBRID AFTER clause (remove in 3.1+)
+			if ($_after !== NULL && is_array($field[$k]) && ! isset($field[$k]['after']))
+			{
+				$field[$k]['after'] = $_after;
+			}
+
 			$this->add_field(array($k => $field[$k]));
 		}
 
@@ -634,7 +642,7 @@ abstract class CI_DB_forge {
 			show_error('Field information is required.');
 		}
 
-		$sqls = $this->_alter_table('CHANGE', $this->db->dbprefix.$table, $this->fields);
+		$sqls = $this->_alter_table('CHANGE', $this->db->dbprefix.$table, $this->_process_fields());
 		$this->_reset();
 		if ($sqls === FALSE)
 		{
@@ -754,7 +762,7 @@ abstract class CI_DB_forge {
 						$attributes['CONSTRAINT'] = $this->db->escape($attributes['CONSTRAINT']);
 					default:
 						$field['length'] = is_array($attributes['CONSTRAINT'])
-								? '('.implode(',', $attributes['CONSTRAINT']).')'
+								? "('".implode("','", $attributes['CONSTRAINT'])."')"
 								: '('.$attributes['CONSTRAINT'].')';
 						break;
 				}
@@ -954,14 +962,25 @@ abstract class CI_DB_forge {
 	 * @param	string	$table
 	 * @return	string
 	 */
-	protected function _process_indexes($table = NULL)
+	protected function _process_indexes($table)
 	{
 		$table = $this->db->escape_identifiers($table);
 		$sqls = array();
 
 		for ($i = 0, $c = count($this->keys); $i < $c; $i++)
 		{
-			if ( ! isset($this->fields[$this->keys[$i]]))
+			if (is_array($this->keys[$i]))
+			{
+				for ($i2 = 0, $c2 = count($this->keys[$i]); $i2 < $c2; $i2++)
+				{
+					if ( ! isset($this->fields[$this->keys[$i][$i2]]))
+					{
+						unset($this->keys[$i][$i2]);
+						continue;
+					}
+				}
+			}
+			elseif ( ! isset($this->fields[$this->keys[$i]]))
 			{
 				unset($this->keys[$i]);
 				continue;

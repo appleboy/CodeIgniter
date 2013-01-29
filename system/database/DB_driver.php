@@ -18,7 +18,7 @@
  *
  * @package		CodeIgniter
  * @author		EllisLab Dev Team
- * @copyright	Copyright (c) 2008 - 2012, EllisLab, Inc. (http://ellislab.com/)
+ * @copyright	Copyright (c) 2008 - 2013, EllisLab, Inc. (http://ellislab.com/)
  * @license		http://opensource.org/licenses/OSL-3.0 Open Software License (OSL 3.0)
  * @link		http://codeigniter.com
  * @since		Version 1.0
@@ -329,9 +329,9 @@ abstract class CI_DB_driver {
 	/**
 	 * ORDER BY random keyword
 	 *
-	 * @var	string
+	 * @var	array
 	 */
-	protected $_random_keyword = ' RAND()';
+	protected $_random_keyword = array('RAND()', 'RAND(%d)');
 
 	/**
 	 * COUNT string
@@ -426,20 +426,6 @@ abstract class CI_DB_driver {
 				}
 				return FALSE;
 			}
-		}
-
-		// ----------------------------------------------------------------
-
-		// Select the DB... assuming a database name is specified in the config file
-		if ($this->database !== '' && ! $this->db_select())
-		{
-			log_message('error', 'Unable to select database: '.$this->database);
-
-			if ($this->db_debug)
-			{
-				$this->display_error('db_unable_to_select', $this->database);
-			}
-			return FALSE;
 		}
 
 		// Now we set the character set and that's all
@@ -692,7 +678,7 @@ abstract class CI_DB_driver {
 			// resource ID won't be any good once we've cached the
 			// result object, so we'll have to compile the data
 			// and save it)
-			$CR = new CI_DB_result();
+			$CR = new CI_DB_result($this);
 			$CR->result_object	= $RES->result_object();
 			$CR->result_array	= $RES->result_array();
 			$CR->num_rows		= $RES->num_rows();
@@ -985,7 +971,7 @@ abstract class CI_DB_driver {
 	 */
 	public function escape($str)
 	{
-		if (is_string($str) OR method_exists($str, '__toString'))
+		if (is_string($str) OR (is_object($str) && method_exists($str, '__toString')))
 		{
 			return "'".$this->escape_str($str)."'";
 		}
@@ -993,9 +979,43 @@ abstract class CI_DB_driver {
 		{
 			return ($str === FALSE) ? 0 : 1;
 		}
-		elseif (is_null($str))
+		elseif ($str === NULL)
 		{
 			return 'NULL';
+		}
+
+		return $str;
+	}
+
+	// --------------------------------------------------------------------
+
+	/**
+	 * Escape String
+	 *
+	 * @param	string	$str
+	 * @param	bool	$like	Whether or not the string will be used in a LIKE condition
+	 * @return	string
+	 */
+	public function escape_str($str, $like = FALSE)
+	{
+		if (is_array($str))
+		{
+			foreach ($str as $key => $val)
+			{
+				$str[$key] = $this->escape_str($val, $like);
+			}
+
+			return $str;
+		}
+
+		$str = $this->_escape_str($str);
+
+		// escape LIKE condition wildcards
+		if ($like === TRUE)
+		{
+			return str_replace(array($this->_like_escape_chr, '%', '_'),
+						array($this->_like_escape_chr.$this->_like_escape_chr, $this->_like_escape_chr.'%', $this->_like_escape_chr.'_'),
+						$str);
 		}
 
 		return $str;
@@ -1009,12 +1029,25 @@ abstract class CI_DB_driver {
 	 * Calls the individual driver for platform
 	 * specific escaping for LIKE conditions
 	 *
-	 * @param	string
+	 * @param	string|string[]
 	 * @return	mixed
 	 */
 	public function escape_like_str($str)
 	{
 		return $this->escape_str($str, TRUE);
+	}
+
+	// --------------------------------------------------------------------
+
+	/**
+	 * Platform-dependant string escape
+	 *
+	 * @param	string
+	 * @return	string
+	 */
+	protected function _escape_str($str)
+	{
+		return str_replace("'", "''", remove_invisible_characters($str));
 	}
 
 	// --------------------------------------------------------------------
@@ -1348,7 +1381,7 @@ abstract class CI_DB_driver {
 			$fields[$this->protect_identifiers($key)] = $this->escape($val);
 		}
 
-		return $this->_update($this->protect_identifiers($table, TRUE, NULL, FALSE), $fields, $dest);
+		return $this->_update($this->protect_identifiers($table, TRUE, NULL, FALSE), $fields);
 	}
 
 	// --------------------------------------------------------------------
@@ -1605,18 +1638,21 @@ abstract class CI_DB_driver {
 		$trace = debug_backtrace();
 		foreach ($trace as $call)
 		{
-			// We'll need this on Windows, as APPPATH and BASEPATH will always use forward slashes
-			if (DIRECTORY_SEPARATOR !== '/')
+			if (isset($call['file'], $call['class']))
 			{
-				$call['file'] = str_replace('\\', '/', $call['file']);
-			}
+				// We'll need this on Windows, as APPPATH and BASEPATH will always use forward slashes
+				if (DIRECTORY_SEPARATOR !== '/')
+				{
+					$call['file'] = str_replace('\\', '/', $call['file']);
+				}
 
-			if (isset($call['file'], $call['class']) && strpos($call['file'], BASEPATH.'database') === FALSE && strpos($call['class'], 'Loader') !== FALSE)
-			{
-				// Found it - use a relative path for safety
-				$message[] = 'Filename: '.str_replace(array(APPPATH, BASEPATH), '', $call['file']);
-				$message[] = 'Line Number: '.$call['line'];
-				break;
+				if (strpos($call['file'], BASEPATH.'database') === FALSE && strpos($call['class'], 'Loader') === FALSE)
+				{
+					// Found it - use a relative path for safety
+					$message[] = 'Filename: '.str_replace(array(APPPATH, BASEPATH), '', $call['file']);
+					$message[] = 'Line Number: '.$call['line'];
+					break;
+				}
 			}
 		}
 

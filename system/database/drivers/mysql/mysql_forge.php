@@ -18,7 +18,7 @@
  *
  * @package		CodeIgniter
  * @author		EllisLab Dev Team
- * @copyright	Copyright (c) 2008 - 2012, EllisLab, Inc. (http://ellislab.com/)
+ * @copyright	Copyright (c) 2008 - 2013, EllisLab, Inc. (http://ellislab.com/)
  * @license		http://opensource.org/licenses/OSL-3.0 Open Software License (OSL 3.0)
  * @link		http://codeigniter.com
  * @since		Version 1.0
@@ -41,6 +41,16 @@ class CI_DB_mysql_forge extends CI_DB_forge {
 	 * @var	string
 	 */
 	protected $_create_database	= 'CREATE DATABASE %s CHARACTER SET %s COLLATE %s';
+
+	/**
+	 * CREATE TABLE keys flag
+	 *
+	 * Whether table keys are created from within the
+	 * CREATE TABLE statement.
+	 *
+	 * @var	bool
+	 */
+	protected $_create_table_keys	= TRUE;
 
 	/**
 	 * UNSIGNED support
@@ -138,14 +148,23 @@ class CI_DB_mysql_forge extends CI_DB_forge {
 	 */
 	protected function _process_column($field)
 	{
+		$extra_clause = isset($field['after'])
+			? ' AFTER '.$this->db->escape_identifiers($field['after']) : '';
+
+		if (empty($extra_clause) && isset($field['first']) && $field['first'] === TRUE)
+		{
+			$extra_clause = ' FIRST';
+		}
+
 		return $this->db->escape_identifiers($field['name'])
-			.(empty($field['new_name']) ? '' : $this->db->escape_identifiers($field['new_name']))
+			.(empty($field['new_name']) ? '' : ' '.$this->db->escape_identifiers($field['new_name']))
 			.' '.$field['type'].$field['length']
 			.$field['unsigned']
 			.$field['null']
 			.$field['default']
 			.$field['auto_increment']
-			.$field['unique'];
+			.$field['unique']
+			.$extra_clause;
 	}
 
 	// --------------------------------------------------------------------
@@ -156,13 +175,24 @@ class CI_DB_mysql_forge extends CI_DB_forge {
 	 * @param	string	$table	(ignored)
 	 * @return	string
 	 */
-	protected function _process_indexes($table = NULL)
+	protected function _process_indexes($table)
 	{
 		$sql = '';
 
 		for ($i = 0, $c = count($this->keys); $i < $c; $i++)
 		{
-			if ( ! isset($this->fields[$this->keys[$i]]))
+			if (is_array($this->keys[$i]))
+			{
+				for ($i2 = 0, $c2 = count($this->keys[$i]); $i2 < $c2; $i2++)
+				{
+					if ( ! isset($this->fields[$this->keys[$i][$i2]]))
+					{
+						unset($this->keys[$i][$i2]);
+						continue;
+					}
+				}
+			}
+			elseif ( ! isset($this->fields[$this->keys[$i]]))
 			{
 				unset($this->keys[$i]);
 				continue;
